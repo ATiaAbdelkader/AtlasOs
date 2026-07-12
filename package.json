@@ -1,0 +1,42 @@
+{
+  "name": "atlasos",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
+    "@tailwindcss/vite": "^4.1.6",
+    "@tanstack/react-query": "^5.75.5",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "framer-motion": "^12.9.4",
+    "lucide-react": "^0.510.0",
+    "motion-dom": "^12.42.2",
+    "motion-utils": "^12.39.0",
+    "react": "^19.2.7",
+    "react-day-picker": "^9.6.7",
+    "react-dom": "^19.2.7",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^6.30.2",
+    "recharts": "^2.15.3",
+    "tailwind-merge": "^3.2.0",
+    "tailwindcss": "^4.1.6",
+    "zustand": "^5.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "oxlint": "^1.71.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1"
+  }
+}

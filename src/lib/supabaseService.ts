@@ -492,3 +492,59 @@ export async function setSkillLinks(careerEntryId: string, skillIds: string[]): 
   )
   if (insErr) throw insErr
 }
+
+// ── Calendar Events ──
+export async function fetchCalendarEvents(userId: string): Promise<any[]> {
+  const { data, error } = await db
+    .from('calendar_events')
+    .select('*')
+    .eq('user_id', userId)
+    .order('start_time', { ascending: true })
+  if (error) throw error
+  return toCamelCase<any>(data ?? [])
+}
+
+export async function createCalendarEvent(userId: string, event: any): Promise<any> {
+  const { data, error } = await db
+    .from('calendar_events')
+    .insert({
+      user_id: userId,
+      title: event.title || '',
+      description: event.description || null,
+      start_time: event.start || new Date().toISOString(),
+      end_time: event.end || new Date().toISOString(),
+      all_day: event.allDay ?? false,
+      type: event.type || 'task',
+      color: event.color || null,
+      recurring: event.recurring || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return toCamelCase<any>([data])[0]!
+}
+
+export async function updateCalendarEvent(id: string, updates: any): Promise<void> {
+  const { error } = await db
+    .from('calendar_events')
+    .update({
+      ...updates.title !== undefined && { title: updates.title },
+      ...updates.description !== undefined && { description: updates.description },
+      ...updates.start !== undefined && { start_time: updates.start },
+      ...updates.end !== undefined && { end_time: updates.end },
+      ...updates.allDay !== undefined && { all_day: updates.allDay },
+      ...updates.type !== undefined && { type: updates.type },
+      ...updates.color !== undefined && { color: updates.color },
+      ...updates.recurring !== undefined && { recurring: updates.recurring },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteCalendarEvent(id: string): Promise<void> {
+  const { error } = await db.from('calendar_events').delete().eq('id', id)
+  if (error) throw error
+}

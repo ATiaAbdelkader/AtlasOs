@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   User, Moon, Sun, Bell, Shield, Palette, Clock,
-  Download, Upload, Trash2, Check, Loader2,
+  Download, Upload, Trash2, Check, Loader2, ExternalLink,
+  CalendarDays, Smartphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -13,6 +14,11 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import {
+  getGoogleAuthUrl, handleRedirectCallback, isGoogleConnected,
+  disconnectGoogle,
+} from '@/lib/calendarSync'
+import { requestNotificationPermission, getNotificationPermission } from '@/lib/notifications'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -59,15 +65,6 @@ function ToggleSwitch({ checked, onChange, label, description }: ToggleSwitchPro
   )
 }
 
-const integrations = [
-  { name: 'Google Calendar', icon: '📅', connected: true },
-  { name: 'Outlook', icon: '📧', connected: false },
-  { name: 'Google Drive', icon: '📁', connected: true },
-  { name: 'GitHub', icon: '💻', connected: false },
-  { name: 'OpenAI', icon: '🤖', connected: true },
-  { name: 'Claude', icon: '🧠', connected: false },
-]
-
 export default function Settings() {
   const { user } = useAuth()
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
@@ -81,12 +78,29 @@ export default function Settings() {
   const [email, setEmail] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [googleConnected, setGoogleConnected] = useState(false)
+  const [googleClientId, setGoogleClientId] = useState('')
+  const [showClientIdInput, setShowClientIdInput] = useState(false)
+  const [notificationStatus, setNotificationStatus] = useState<string>('checking')
+  const [reminderMinutes, setReminderMinutes] = useState(15)
 
   useEffect(() => {
     if (user) {
       setEmail(user.email || '')
       setName(user.user_metadata?.display_name || user.email?.split('@')[0] || '')
     }
+    const connected = handleRedirectCallback()
+    if (connected) setGoogleConnected(true)
+    setGoogleConnected(isGoogleConnected())
+
+    const perm = getNotificationPermission()
+    if (perm === 'granted') setNotificationStatus('granted')
+    else if (perm === 'denied') setNotificationStatus('denied')
+    else if (perm === 'unsupported') setNotificationStatus('unsupported')
+    else setNotificationStatus('default')
+
+    const stored = localStorage.getItem('atlasos_reminder_minutes')
+    if (stored) setReminderMinutes(parseInt(stored))
   }, [user])
 
   const userInitials = email
@@ -105,6 +119,30 @@ export default function Settings() {
       setTimeout(() => setSaved(false), 2000)
     }
     setSaving(false)
+  }
+
+  const handleConnectGoogle = () => {
+    if (!googleClientId.trim()) {
+      setShowClientIdInput(true)
+      return
+    }
+    const url = getGoogleAuthUrl(googleClientId.trim())
+    window.location.href = url
+  }
+
+  const handleDisconnectGoogle = () => {
+    disconnectGoogle()
+    setGoogleConnected(false)
+  }
+
+  const handleRequestNotification = async () => {
+    const granted = await requestNotificationPermission()
+    setNotificationStatus(granted ? 'granted' : 'denied')
+  }
+
+  const handleReminderChange = (val: number) => {
+    setReminderMinutes(val)
+    localStorage.setItem('atlasos_reminder_minutes', val.toString())
   }
 
   return (
@@ -168,9 +206,7 @@ export default function Settings() {
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <p className="text-sm font-medium">Appearance</p>
-                <p className="text-xs text-muted-foreground">
-                  Toggle between dark and light mode
-                </p>
+                <p className="text-xs text-muted-foreground">Toggle between dark and light mode</p>
               </div>
               <div className="flex gap-1 rounded-xl border border-border/50 bg-muted/50 p-1">
                 <button
@@ -206,8 +242,37 @@ export default function Settings() {
               <Bell className="h-4 w-4 text-amber-500" />
               Notifications
             </CardTitle>
+            <CardDescription>Configure push notifications and reminders</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Browser notification permission */}
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-border/50 bg-muted/30 p-3">
+              <div className="min-w-0 space-y-0.5">
+                <p className="text-sm font-medium">Browser Notifications</p>
+                <p className="text-xs text-muted-foreground">
+                  {notificationStatus === 'granted' && 'Notifications are enabled'}
+                  {notificationStatus === 'denied' && 'Notifications are blocked — update your browser settings'}
+                  {notificationStatus === 'unsupported' && 'Notifications not supported in this browser'}
+                  {notificationStatus === 'default' && 'Allow notifications to receive event reminders'}
+                  {notificationStatus === 'checking' && 'Checking...'}
+                </p>
+              </div>
+              {notificationStatus === 'default' && (
+                <Button size="sm" variant="outline" onClick={handleRequestNotification}>
+                  <Bell className="mr-1.5 h-3.5 w-3.5" />
+                  Enable
+                </Button>
+              )}
+              {notificationStatus === 'granted' && (
+                <Badge variant="outline" className="text-emerald-500 border-emerald-500/20 bg-emerald-500/10">Active</Badge>
+              )}
+              {notificationStatus === 'denied' && (
+                <Badge variant="outline" className="text-red-500 border-red-500/20 bg-red-500/10">Blocked</Badge>
+              )}
+            </div>
+
+            <Separator />
+
             <ToggleSwitch
               checked={notifications.taskReminders}
               onChange={(v) => setNotifications((n) => ({ ...n, taskReminders: v }))}
@@ -235,6 +300,25 @@ export default function Settings() {
               label="AI Insights"
               description="Receive personalized AI recommendations"
             />
+
+            <Separator />
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Default Reminder Time</label>
+              <select
+                value={reminderMinutes}
+                onChange={(e) => handleReminderChange(parseInt(e.target.value))}
+                className="w-full rounded-xl border border-border bg-background p-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value={5}>5 minutes before</option>
+                <option value={10}>10 minutes before</option>
+                <option value={15}>15 minutes before</option>
+                <option value={30}>30 minutes before</option>
+                <option value={60}>1 hour before</option>
+                <option value={120}>2 hours before</option>
+                <option value={1440}>1 day before</option>
+              </select>
+            </div>
           </CardContent>
         </Card>
       </motion.div>
@@ -243,40 +327,68 @@ export default function Settings() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Shield className="h-4 w-4 text-emerald-500" />
-              Integrations
+              <CalendarDays className="h-4 w-4 text-blue-500" />
+              Calendar Integration
             </CardTitle>
-            <CardDescription>Connect your external accounts and services</CardDescription>
+            <CardDescription>Sync your Google Calendar with AtlasOS</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {integrations.map((integration) => (
-                <div
-                  key={integration.name}
-                  className="flex items-center justify-between rounded-xl border border-border/50 p-3 transition-colors hover:border-border"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">{integration.icon}</span>
-                    <div>
-                      <p className="text-sm font-medium">{integration.name}</p>
-                      {integration.connected && (
-                        <div className="flex items-center gap-1 text-xs text-emerald-500">
-                          <Check className="h-3 w-3" />
-                          Connected
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    variant={integration.connected ? 'outline' : 'default'}
-                    size="sm"
-                    className="text-xs"
-                  >
-                    {integration.connected ? 'Disconnect' : 'Connect'}
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-border/50 bg-muted/30 p-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
+                  <CalendarDays className="h-5 w-5 text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Google Calendar</p>
+                  <p className="text-xs text-muted-foreground">
+                    {googleConnected ? 'Connected — events will sync automatically' : 'Sync your events from Google Calendar'}
+                  </p>
+                </div>
+              </div>
+              {googleConnected ? (
+                <Button size="sm" variant="outline" onClick={handleDisconnectGoogle} className="text-red-500 hover:text-red-600">
+                  Disconnect
+                </Button>
+              ) : (
+                <Button size="sm" onClick={handleConnectGoogle}>
+                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                  Connect
+                </Button>
+              )}
+            </div>
+
+            {showClientIdInput && !googleConnected && (
+              <div className="space-y-2 rounded-xl border border-border/50 bg-muted/20 p-4">
+                <p className="text-xs font-medium text-muted-foreground">
+                  To connect Google Calendar, you need a Google Cloud OAuth Client ID:
+                </p>
+                <ol className="ml-4 list-decimal space-y-1 text-xs text-muted-foreground/80">
+                  <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Google Cloud Console</a></li>
+                  <li>Create a project or select existing → Enable Google Calendar API</li>
+                  <li>Go to Credentials → Create OAuth 2.0 Client ID (Web application)</li>
+                  <li>Add <code className="rounded bg-muted px-1">{typeof window !== 'undefined' ? window.location.origin + '/settings' : ''}</code> as redirect URI</li>
+                  <li>Copy the Client ID below</li>
+                </ol>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Paste your Google Client ID"
+                    value={googleClientId}
+                    onChange={(e) => setGoogleClientId(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button size="sm" onClick={handleConnectGoogle} disabled={!googleClientId.trim()}>
+                    Connect
                   </Button>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+
+            {googleConnected && (
+              <div className="flex items-center gap-2 text-xs text-emerald-500">
+                <Check className="h-3.5 w-3.5" />
+                Calendar is syncing. Events appear on the Calendar page.
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>

@@ -272,3 +272,33 @@ export interface ActivityLog {
   description: string
   timestamp: string
 }
+
+export type CareerEntryType = 'role' | 'education' | 'certification' | 'conference' | 'membership' | 'achievement' | 'book' | 'training' | 'other'
+
+export interface CareerEntry {
+  id: string
+  title: string
+  subtitle: string
+  type: CareerEntryType
+  startDate: string
+  endDate?: string
+  description: string
+  category: string
+  url?: string
+  icon?: string
+  sortOrder: number
+  skillIds: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Skill {
+  id: string
+  name: string
+  category: string
+  level: number
+  year: number
+  description: string
+  createdAt: string
+  updatedAt: string
+}

@@ -17,6 +17,8 @@ import Journal from '@/pages/Journal'
 import Habits from '@/pages/Habits'
 import Analytics from '@/pages/Analytics'
 import AIAssistant from '@/pages/AIAssistant'
+import Career from '@/pages/Career'
+import Skills from '@/pages/Skills'
 import Settings from '@/pages/Settings'
 import Auth from '@/pages/Auth'
 
@@ -62,6 +64,8 @@ function App() {
         <Route path="/habits" element={<Habits />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/ai" element={<AIAssistant />} />
+        <Route path="/career" element={<Career />} />
+        <Route path="/skills" element={<Skills />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>

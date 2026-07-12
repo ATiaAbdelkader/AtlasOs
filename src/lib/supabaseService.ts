@@ -1,4 +1,4 @@
-import type { Task, Project, Mission, Milestone, SubTask } from '@/types'
+import type { Task, Project, Mission, Milestone, SubTask, CareerEntry, Skill } from '@/types'
 import { supabase } from './supabase'
 
 const db = supabase as any
@@ -361,4 +361,134 @@ export async function updateSubtask(id: string, updates: Partial<SubTask>): Prom
 export async function deleteSubtask(id: string): Promise<void> {
   const { error } = await db.from('subtasks').delete().eq('id', id)
   if (error) throw error
+}
+
+// ── Career Entries ──
+export async function fetchCareerEntries(userId: string): Promise<any[]> {
+  const { data, error } = await db
+    .from('career_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .order('start_date', { ascending: false })
+  if (error) throw error
+  return toCamelCase<any>(data ?? [])
+}
+
+export async function createCareerEntry(userId: string, entry: any): Promise<any> {
+  const { data, error } = await db
+    .from('career_entries')
+    .insert({
+      user_id: userId,
+      title: entry.title || '',
+      subtitle: entry.subtitle || '',
+      type: entry.type || 'other',
+      start_date: entry.startDate || null,
+      end_date: entry.endDate || null,
+      description: entry.description || '',
+      category: entry.category || '',
+      url: entry.url || null,
+      icon: entry.icon || null,
+      sort_order: entry.sortOrder ?? 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return toCamelCase<any>([data])[0]!
+}
+
+export async function updateCareerEntry(id: string, updates: any): Promise<void> {
+  const { error } = await db
+    .from('career_entries')
+    .update({
+      ...updates.title !== undefined && { title: updates.title },
+      ...updates.subtitle !== undefined && { subtitle: updates.subtitle },
+      ...updates.type !== undefined && { type: updates.type },
+      ...updates.startDate !== undefined && { start_date: updates.startDate },
+      ...updates.endDate !== undefined && { end_date: updates.endDate },
+      ...updates.description !== undefined && { description: updates.description },
+      ...updates.category !== undefined && { category: updates.category },
+      ...updates.url !== undefined && { url: updates.url },
+      ...updates.icon !== undefined && { icon: updates.icon },
+      ...updates.sortOrder !== undefined && { sort_order: updates.sortOrder },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteCareerEntry(id: string): Promise<void> {
+  const { error } = await db.from('career_entries').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ── Skills ──
+export async function fetchSkills(userId: string): Promise<any[]> {
+  const { data, error } = await db
+    .from('skills')
+    .select('*')
+    .eq('user_id', userId)
+    .order('year', { ascending: false })
+  if (error) throw error
+  return toCamelCase<any>(data ?? [])
+}
+
+export async function createSkill(userId: string, skill: any): Promise<any> {
+  const { data, error } = await db
+    .from('skills')
+    .insert({
+      user_id: userId,
+      name: skill.name || '',
+      category: skill.category || '',
+      level: skill.level ?? 1,
+      year: skill.year ?? new Date().getFullYear(),
+      description: skill.description || '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return toCamelCase<any>([data])[0]!
+}
+
+export async function updateSkill(id: string, updates: any): Promise<void> {
+  const { error } = await db
+    .from('skills')
+    .update({
+      ...updates.name !== undefined && { name: updates.name },
+      ...updates.category !== undefined && { category: updates.category },
+      ...updates.level !== undefined && { level: updates.level },
+      ...updates.year !== undefined && { year: updates.year },
+      ...updates.description !== undefined && { description: updates.description },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteSkill(id: string): Promise<void> {
+  const { error } = await db.from('skills').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ── Skill-Career Links ──
+export async function fetchSkillLinks(careerEntryId: string): Promise<any[]> {
+  const { data, error } = await db
+    .from('skill_career_links')
+    .select('skill_id')
+    .eq('career_entry_id', careerEntryId)
+  if (error) throw error
+  return (data ?? []).map((r: any) => r.skill_id)
+}
+
+export async function setSkillLinks(careerEntryId: string, skillIds: string[]): Promise<void> {
+  const { error: delErr } = await db.from('skill_career_links').delete().eq('career_entry_id', careerEntryId)
+  if (delErr) throw delErr
+  if (skillIds.length === 0) return
+  const { error: insErr } = await db.from('skill_career_links').insert(
+    skillIds.map((skill_id) => ({ career_entry_id: careerEntryId, skill_id })),
+  )
+  if (insErr) throw insErr
 }

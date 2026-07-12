@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Target, CheckSquare, Calendar, FolderKanban,
   FlaskConical, BookOpen, Briefcase, Database, BookMarked,
   BarChart3, Settings, Sparkles, Brain, Menu, X,
-  PenTool, LineChart, Heart, LogOut,
+  PenTool, LineChart, Heart, LogOut, GraduationCap, Layers,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/stores/appStore'
@@ -26,6 +26,8 @@ const navItems = [
   { icon: Database, label: 'Knowledge Vault', path: '/knowledge' },
   { icon: BookMarked, label: 'Journal', path: '/journal' },
   { icon: Heart, label: 'Habits', path: '/habits' },
+  { icon: GraduationCap, label: 'Career Timeline', path: '/career' },
+  { icon: Layers, label: 'Skills Radar', path: '/skills' },
   { icon: BarChart3, label: 'Analytics', path: '/analytics' },
   { icon: Sparkles, label: 'AI Assistant', path: '/ai' },
   { icon: Settings, label: 'Settings', path: '/settings' },

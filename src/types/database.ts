@@ -49,3 +49,6 @@ export interface ActivityLogDB { id: string; user_id: string; type: string; acti
 export interface UserLevelDB { id: string; user_id: string; level: number; xp: number; total_xp_earned: number; created_at: string; updated_at: string }
 export interface AchievementDB { id: string; user_id: string; code: string; title: string; description: string | null; icon: string | null; category: string | null; xp_reward: number; unlocked_at: string }
 export interface AIRecommendationDB { id: string; user_id: string; type: string; title: string; description: string | null; priority: string | null; category: string | null; action_label: string | null; action_link: string | null; dismissed: boolean; created_at: string }
+export interface CareerEntryDB { id: string; user_id: string; title: string; subtitle: string; type: string; start_date: string; end_date: string | null; description: string; category: string; url: string | null; icon: string | null; sort_order: number; created_at: string; updated_at: string }
+export interface SkillDB { id: string; user_id: string; name: string; category: string; level: number; year: number; description: string; created_at: string; updated_at: string }
+export interface SkillCareerLinkDB { id: string; skill_id: string; career_entry_id: string }

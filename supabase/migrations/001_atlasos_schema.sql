@@ -497,6 +497,67 @@ DROP POLICY IF EXISTS "Users update own recommendations" ON ai_recommendations;
 CREATE POLICY "Users update own recommendations" ON ai_recommendations FOR UPDATE USING (auth.uid() = user_id);
 
 -- ============================================
+-- CAREER ENTRIES
+-- ============================================
+CREATE TABLE IF NOT EXISTS career_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL,
+  subtitle TEXT DEFAULT '',
+  type TEXT NOT NULL DEFAULT 'other' CHECK (type IN ('role','education','certification','training','conference','membership','achievement','book','other')),
+  start_date DATE NOT NULL,
+  end_date DATE,
+  description TEXT DEFAULT '',
+  category TEXT DEFAULT '',
+  url TEXT,
+  icon TEXT,
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE career_entries ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users manage own career_entries" ON career_entries;
+CREATE POLICY "Users manage own career_entries" ON career_entries FOR ALL USING (auth.uid() = user_id);
+
+-- ============================================
+-- SKILLS
+-- ============================================
+CREATE TABLE IF NOT EXISTS skills (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  category TEXT DEFAULT '',
+  level INT DEFAULT 1 CHECK (level >= 1 AND level <= 5),
+  year INT DEFAULT EXTRACT(YEAR FROM NOW()),
+  description TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE skills ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users manage own skills" ON skills;
+CREATE POLICY "Users manage own skills" ON skills FOR ALL USING (auth.uid() = user_id);
+
+-- ============================================
+-- SKILL-CAREER LINKS
+-- ============================================
+CREATE TABLE IF NOT EXISTS skill_career_links (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  skill_id UUID REFERENCES skills(id) ON DELETE CASCADE NOT NULL,
+  career_entry_id UUID REFERENCES career_entries(id) ON DELETE CASCADE NOT NULL,
+  UNIQUE(skill_id, career_entry_id)
+);
+
+ALTER TABLE skill_career_links ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users manage own skill_career_links" ON skill_career_links;
+CREATE POLICY "Users manage own skill_career_links" ON skill_career_links FOR ALL USING (
+  auth.uid() IN (
+    SELECT user_id FROM career_entries WHERE id = career_entry_id
+  )
+);
+
+-- ============================================
 -- INDEXES (IF NOT EXISTS)
 -- ============================================
 CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
@@ -514,6 +575,11 @@ CREATE INDEX IF NOT EXISTS idx_writing_projects_user_id ON writing_projects(user
 CREATE INDEX IF NOT EXISTS idx_research_papers_user_id ON research_papers(user_id);
 CREATE INDEX IF NOT EXISTS idx_business_clients_user_id ON business_clients(user_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_user_id ON invoices(user_id);
+CREATE INDEX IF NOT EXISTS idx_career_entries_user_id ON career_entries(user_id);
+CREATE INDEX IF NOT EXISTS idx_career_entries_start_date ON career_entries(start_date);
+CREATE INDEX IF NOT EXISTS idx_skills_user_id ON skills(user_id);
+CREATE INDEX IF NOT EXISTS idx_skills_category ON skills(category);
+CREATE INDEX IF NOT EXISTS idx_skill_career_links_entry ON skill_career_links(career_entry_id);
 
 -- ============================================
 -- TRIGGER: auto-create profile on signup (OR REPLACE)

@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator'
 import { cn, generateId } from '@/lib/utils'
 import { useSkillStore } from '@/stores/skillStore'
 import { useCareerStore } from '@/stores/careerStore'
+
 import { useAuth } from '@/lib/auth'
 import type { Skill } from '@/types'
 
@@ -136,7 +137,7 @@ const emptySkill: Partial<Skill> = {
 export default function Skills() {
   const { user } = useAuth()
   const { skills, isLoading, init, addSkillAsync, updateSkillAsync, deleteSkillAsync } = useSkillStore()
-  const { entries } = useCareerStore()
+  const { entries, init: initCareer } = useCareerStore()
   const [activeTab, setActiveTab] = useState('all')
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -144,8 +145,11 @@ export default function Skills() {
   const [form, setForm] = useState<Partial<Skill>>({ ...emptySkill })
 
   useEffect(() => {
-    if (user) init(user.id)
-  }, [user, init])
+    if (user) {
+      init(user.id)
+      initCareer(user.id)
+    }
+  }, [user, init, initCareer])
 
   const skillCategories = useMemo(() => {
     const cats = new Set(skills.map((s) => s.category || 'Other'))

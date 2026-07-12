@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Skill } from '@/types'
 import * as api from '@/lib/supabaseService'
+import { skills as mockSkills } from '@/data/mockData'
 
 interface SkillState {
   skills: Skill[]
@@ -38,8 +39,8 @@ export const useSkillStore = create<SkillState>()((set, get) => ({
       const skills = await api.fetchSkills(userId)
       set({ skills, isLoading: false })
     } catch (err: any) {
-      console.warn('Failed to fetch skills from Supabase:', err?.message)
-      set({ isLoading: false, error: err?.message })
+      console.warn('Failed to fetch skills from Supabase, using seeded data:', err?.message)
+      set({ skills: mockSkills, isLoading: false, error: err?.message })
     }
   },
 

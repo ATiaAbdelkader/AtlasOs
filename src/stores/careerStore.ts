@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { CareerEntry } from '@/types'
 import * as api from '@/lib/supabaseService'
+import { careerEntries as mockEntries } from '@/data/mockData'
 
 interface CareerState {
   entries: CareerEntry[]
@@ -45,8 +46,8 @@ export const useCareerStore = create<CareerState>()((set, get) => ({
       }))
       set({ entries: normalized, isLoading: false })
     } catch (err: any) {
-      console.warn('Failed to fetch career entries from Supabase:', err?.message)
-      set({ isLoading: false, error: err?.message })
+      console.warn('Failed to fetch career entries from Supabase, using seeded data:', err?.message)
+      set({ entries: mockEntries, isLoading: false, error: err?.message })
     }
   },
 
